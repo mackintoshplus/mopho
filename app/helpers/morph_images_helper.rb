@@ -1,0 +1,2 @@
+module MorphImagesHelper
+end
