@@ -1,3 +1,7 @@
-<p>
-  <%= image_tag @morph_image.image %>
-</p>
+<% if @morph_image.video.attached? %>
+<video width="320" height="240" controls>
+  <source src="<%= rails_blob_url(@morph_image.video) %>" type="video/mp4">
+</video>
+<% else %>
+<p>Video is not available.</p>
+<% end %>

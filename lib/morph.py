@@ -21,3 +21,4 @@ def morph_images(image1_path, image2_path, output_path, steps=30):
 if __name__ == "__main__":
     input1, input2, output = sys.argv[1], sys.argv[2], sys.argv[3]
     morph_images(input1, input2, output)
+    print(f"Processing {input1} and {input2} to {output}")  # デバッグ出力
