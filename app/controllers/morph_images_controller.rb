@@ -5,54 +5,41 @@ class MorphImagesController < ApplicationController
   end
 
   def create
-    # 一時ディレクトリが存在しない場合は作成
-    Dir.mkdir(Rails.root.join('tmp')) unless Dir.exist?(Rails.root.join('tmp'))
+    uploaded_io1 = morph_image_params[:image]
+    uploaded_io2 = morph_image_params[:image2]
 
-    @morph_image = MorphImage.new(morph_image_params)
-    if @morph_image.save
-      image1_path = Rails.root.join('tmp', 'image1.png')
-      image2_path = Rails.root.join('tmp', 'image2.png')
-      output_path = Rails.root.join('tmp', 'output.mp4')
-  
-      # 画像を一時的な場所に保存
-      File.open(image1_path, 'wb') do |file|
-        file.write(@morph_image.image.download)
-      end
-  
-      File.open(image2_path, 'wb') do |file|
-        file.write(@morph_image.image2.download)
-      end
-  
-      # モーフィング処理を実行
-      MorphingService.call_python_morph_script(image1_path.to_s, image2_path.to_s, output_path.to_s)
-
-      # 動画ファイルの存在確認
+    # nil チェック
+    if uploaded_io1.nil? || uploaded_io2.nil?
+      flash[:error] = "Both images must be uploaded."
+      render :new and return
+    end
+    
+    filepath1 = Rails.root.join('lib', 'tmp', uploaded_io1.original_filename)
+    filepath2 = Rails.root.join('lib', 'tmp', uploaded_io2.original_filename)
+    
+    File.open(filepath1, 'wb') { |file| file.write(uploaded_io1.read) }
+    File.open(filepath2, 'wb') { |file| file.write(uploaded_io2.read) }
+    
+    # タイムスタンプを変数に格納
+    timestamp = Time.now.to_i
+    
+    output_path = Rails.root.join('lib', 'tmp', "output_#{timestamp}.mp4")
+    success = MorphingService.call_python_morph_script(filepath1, filepath2, output_path)
+    
+    if success && File.exist?(output_path)
       if File.exist?(output_path)
-        # ビデオをMorphImageにアタッチ
-        @morph_image.video.attach(io: File.open(output_path), filename: 'output.mp4', content_type: 'video/mp4')
+        @video_url = "lib/temp/output_#{timestamp}.mp4"
+        render :show
       else
-        Rails.logger.error("No output video found at #{output_path}")
+        flash[:error] = "An error occurred while generating the video."
+        render :new
       end
-
-      # 最後に一時的な画像・動画ファイルを削除
-      File.delete(image1_path) if File.exist?(image1_path)
-      File.delete(image2_path) if File.exist?(image2_path)
-      File.delete(output_path) if File.exist?(output_path)
-  
-      redirect_to @morph_image, notice: 'Image was successfully uploaded.'
-    else
-      render :new
     end
   end
 
-  def show
-    @morph_image = MorphImage.find(params[:id])
-  end
-
   private
-
+  
   def morph_image_params
-    params.require(:morph_image).permit(:image, :image2) # image2を追加
+    params.require(:morph_image).permit(:image, :image2)
   end
-
 end
