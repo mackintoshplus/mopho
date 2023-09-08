@@ -5,7 +5,7 @@ class MorphingService
     
     success = true
     
-    Open3.popen3("python #{script_path} #{image1_path} #{image2_path} #{output_path}") do |stdin, stdout, stderr, thread|
+    Open3.popen3("/usr/bin/python3 #{script_path} #{image1_path} #{image2_path} #{output_path}") do |stdin, stdout, stderr, thread|
       # スクリプトからの出力を取得
       output = stdout.read.strip
       error = stderr.read.strip

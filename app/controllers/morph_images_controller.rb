@@ -14,26 +14,28 @@ class MorphImagesController < ApplicationController
       render :new and return
     end
     
-    filepath1 = Rails.root.join('lib', 'tmp', uploaded_io1.original_filename)
-    filepath2 = Rails.root.join('lib', 'tmp', uploaded_io2.original_filename)
+    # タイムスタンプを変数に格納
+    timestamp = Time.now.to_i
+
+    # 新しいディレクトリを作成
+    dir_path = Rails.root.join('public', 'videos', "morphing_#{timestamp}")
+    Dir.mkdir(dir_path) unless Dir.exist?(dir_path)
+    
+    filepath1 = dir_path.join(uploaded_io1.original_filename)
+    filepath2 = dir_path.join(uploaded_io2.original_filename)
     
     File.open(filepath1, 'wb') { |file| file.write(uploaded_io1.read) }
     File.open(filepath2, 'wb') { |file| file.write(uploaded_io2.read) }
     
-    # タイムスタンプを変数に格納
-    timestamp = Time.now.to_i
-    
-    output_path = Rails.root.join('lib', 'tmp', "output_#{timestamp}.mp4")
+    output_path = dir_path.join("output_#{timestamp}.mp4")
     success = MorphingService.call_python_morph_script(filepath1, filepath2, output_path)
     
     if success && File.exist?(output_path)
-      if File.exist?(output_path)
-        @video_url = "lib/temp/output_#{timestamp}.mp4"
-        render :show
-      else
-        flash[:error] = "An error occurred while generating the video."
-        render :new
-      end
+      @video_url = "#{dir_path}/output_#{timestamp}.mp4"
+      render :show
+    else
+      flash[:error] = "An error occurred while generating the video."
+      render :new
     end
   end
 
